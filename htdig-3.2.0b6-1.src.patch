@@ -1,0 +1,248 @@
+--- origsrc/htdig-3.2.0b6/db/Makefile.am	2002-02-02 12:18:05.000000000 -0600
++++ src/htdig-3.2.0b6/db/Makefile.am	2009-01-08 00:35:39.704625000 -0600
+@@ -137,7 +137,7 @@ libhtdb_la_SOURCES = \
+ 	xa_db.c \
+ 	xa_map.c
+ 
+-libhtdb_la_LDFLAGS = -release $(MAJOR_VERSION).$(MINOR_VERSION).$(MICRO_VERSION)
++libhtdb_la_LDFLAGS = -release $(MAJOR_VERSION).$(MINOR_VERSION).$(MICRO_VERSION) -no-undefined
+ 
+ pkginclude_HEADERS = \
+ 	btree.h \
+--- origsrc/htdig-3.2.0b6/htcommon/Makefile.am	2009-01-08 00:20:03.767125000 -0600
++++ src/htdig-3.2.0b6/htcommon/Makefile.am	2009-01-08 00:38:07.923375000 -0600
+@@ -21,7 +21,7 @@ libcommon_la_SOURCES = DocumentDB.cc Doc
+ 	HtConfiguration.cc HtURLRewriter.cc \
+ 	conf_lexer.lxx conf_parser.yxx 
+ 
+-libcommon_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) ${extra_ldflags}
++libcommon_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) -no-undefined ${extra_ldflags}
+ 
+ noinst_HEADERS = DocumentDB.h \
+ 	DocumentRef.h \
+--- origsrc/htdig-3.2.0b6/htfuzzy/EndingsDB.cc	2004-05-28 08:15:20.000000000 -0500
++++ src/htdig-3.2.0b6/htfuzzy/EndingsDB.cc	2009-01-08 01:50:34.720250000 -0600
+@@ -85,14 +85,18 @@ Endings::createDB(const HtConfiguration 
+     word2root << "/word2root.db";
+     root2word << "/root2word.db";
+ 
++#ifdef DEBUG
+     if (debug)
+ 	cout << "htfuzzy/endings: Reading rules\n";
++#endif
+ 	
+     if (readRules(rules, config["endings_affix_file"]) == NOTOK)
+ 	return NOTOK;
+ 
++#ifdef DEBUG
+     if (debug)
+ 	cout << "htfuzzy/endings: Creating databases\n";
++#endif
+ 	
+     if (createRoot(rules, word2root, root2word,
+ 		   config["endings_dictionary"]) == NOTOK)
+@@ -245,11 +249,13 @@ Endings::createRoot(Dictionary &rules, c
+ 	
+     while (fgets(input, sizeof(input), fl))
+     {
++#ifdef DEBUG
+ 	if ((count % 100) == 0 && debug == 1)
+ 	{
+ 	    cout << "htfuzzy/endings: words: " << count << '\n';
+ 	    cout.flush();
+ 	}
++#endif
+ 	count++;
+ 		
+ 	p = strchr(input, '/');
+@@ -261,8 +267,10 @@ Endings::createRoot(Dictionary &rules, c
+ 	mungeWord(input, word);
+ 	expandWord(words, wordList, rules, word, p);
+ 
++#ifdef DEBUG
+ 	if (debug > 1)
+ 	    cout << "htfuzzy/endings: " << word << " --> " << words << endl;
++#endif
+ 
+ 	//
+ 	// Store the root mapped to the list of expanded words.
+@@ -285,8 +293,10 @@ Endings::createRoot(Dictionary &rules, c
+ 	}
+     }
+ 
++#ifdef DEBUG
+     if (debug == 1)
+ 	cout << endl;
++#endif
+ 	
+     fclose(fl);
+     w2r->Close();
+@@ -403,8 +413,10 @@ Endings::expandWord(String &words, List 
+ 	    rule = entry->rule;
+ 	    if (strchr((char*)rule, '\''))
+ 		continue;
++#ifdef DEBUG
+ 	    if (debug > 2)
+ 		cout << "Applying regex '" << entry->expression << "' to " << word << endl;
++#endif
+ 	    regcomp(&reg, (char*)entry->expression, REG_ICASE | REG_NOSUB | REG_EXTENDED);
+ 	    if (regexec(&reg, word, 0, NULL, 0) == 0)
+ 	    {
+@@ -429,8 +441,10 @@ Endings::expandWord(String &words, List 
+ 		    root << rule;
+ 		}
+ 		root.lowercase();
++#ifdef DEBUG
+ 		if (debug > 2)
+ 		    cout << word << " with " << rule << " --> '" << root << "'\n";
++#endif
+ 		wordList.Add(new String(root));
+ 		words << root << ' ';
+ 	    }
+--- origsrc/htdig-3.2.0b6/htfuzzy/Fuzzy.cc	2004-05-28 08:15:20.000000000 -0500
++++ src/htdig-3.2.0b6/htfuzzy/Fuzzy.cc	2009-01-08 01:54:30.485875000 -0600
+@@ -84,8 +84,10 @@ Fuzzy::getWords(char *word, List &words)
+     String	stripped = word;
+     HtStripPunctuation(stripped);
+     generateKey(stripped, fuzzyKey);
++#ifdef DEBUG
+     if (debug > 2)
+       cout << "\n\tkey: " << fuzzyKey << endl;
++#endif
+ 
+     words.Destroy();
+ 	
+@@ -160,11 +162,14 @@ Fuzzy::writeDB()
+ 	s = (String *) dict->Find(fuzzyKey);
+ 	index->Put(fuzzyKey, *s);
+ 
++#ifdef DEBUG
+ 	if (debug > 1)
+ 	{
+ 	    cout << "htfuzzy: '" << fuzzyKey << "' ==> '" << s->get() << "'\n";
+ 	}
++#endif
+ 	count++;
++#ifdef DEBUG
+ 	if ((count % 100) == 0 && debug == 1)
+ 	{
+ 	    cout << "htfuzzy: keys: " << count << '\n';
+@@ -174,6 +179,7 @@ Fuzzy::writeDB()
+     if (debug == 1)
+     {
+ 	cout << "htfuzzy:Total keys: " << count << "\n";
++#endif
+     }
+     return OK;
+ }
+--- origsrc/htdig-3.2.0b6/htfuzzy/Makefile.am	2003-08-27 20:40:30.000000000 -0500
++++ src/htdig-3.2.0b6/htfuzzy/Makefile.am	2009-01-08 01:56:52.767125000 -0600
+@@ -10,7 +10,8 @@ libfuzzy_la_SOURCES = Endings.cc Endings
+ 		SuffixEntry.cc Synonym.cc \
+ 		Substring.cc Prefix.cc Regexp.cc Speling.cc
+ 
+-libfuzzy_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) ${extra_ldflags}
++libfuzzy_la_LIBADD = $(HTLIBS)
++libfuzzy_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) -no-undefined ${extra_ldflags}
+ 
+ noinst_HEADERS = Accents.h \
+ 	Endings.h \
+--- origsrc/htdig-3.2.0b6/htfuzzy/Prefix.cc	2004-05-28 08:15:20.000000000 -0500
++++ src/htdig-3.2.0b6/htfuzzy/Prefix.cc	2009-01-08 01:55:36.517125000 -0600
+@@ -63,10 +63,12 @@ Prefix::getWords(char *w, List &words)
+     int 		prefix_suffix_length = prefix_suffix.length();
+     int 		minimum_prefix_length = config.Value("minimum_prefix_length");
+ 
++#ifdef DEBUG
+     if (debug)
+          cerr << " word=" << w << " prefix_suffix=" << prefix_suffix 
+ 		<< " prefix_suffix_length=" << prefix_suffix_length
+ 		<< " minimum_prefix_length=" << minimum_prefix_length << "\n";
++#endif
+ 
+     if ((int)strlen(w) < minimum_prefix_length + prefix_suffix_length)
+ 	return;
+--- origsrc/htdig-3.2.0b6/htfuzzy/Synonym.cc	2004-05-28 08:15:20.000000000 -0500
++++ src/htdig-3.2.0b6/htfuzzy/Synonym.cc	2009-01-08 01:53:19.423375000 -0600
+@@ -112,12 +112,14 @@ Synonym::createDB(const HtConfiguration 
+ 	StringList	sl(input, " \t\r\n");
+ 	if (sl.Count() < 2)
+ 	{		// Avoid segfault caused by calling Database::Put()
++#ifdef DEBUG
+ 	    if (debug)	// with negative length for data field
+ 	    {
+ 		cout<<"htfuzzy/synonyms: Rejected line with less than 2 words: "
+ 		     << input << endl;
+ 		cout.flush();
+ 	    }
++#endif
+ 	    continue;
+ 	}
+ 	for (int i = 0; i < sl.Count(); i++)
+@@ -132,11 +134,13 @@ Synonym::createDB(const HtConfiguration 
+ 	    word.lowercase();
+ 	    data.lowercase();
+ 	    db->Put(word, String(data.get(), data.length() - 1));
++#ifdef DEBUG
+ 	    if (debug && (count % 10) == 0)
+ 	    {
+                 cout << "htfuzzy/synonyms: " << count << ' ' << word << "\n";
+ 		cout.flush();
+ 	    }
++#endif
+ 	    count++;
+ 	}
+     }
+@@ -161,11 +165,13 @@ Synonym::createDB(const HtConfiguration 
+             return NOTOK;
+     }
+ 
++#ifdef DEBUG
+     if (debug)
+     {
+         cout << "htfuzzy/synonyms: " << count << ' ' << word << "\n";
+         cout << "htfuzzy/synonyms: Done.\n";
+     }
++#endif
+ 
+ #else //This code uses a system call - Phase this out
+ 
+--- origsrc/htdig-3.2.0b6/htlib/Makefile.am	2009-01-08 00:20:03.720250000 -0600
++++ src/htdig-3.2.0b6/htlib/Makefile.am	2009-01-08 00:27:25.407750000 -0600
+@@ -18,7 +18,7 @@ libht_la_SOURCES = Configuration.cc Data
+ 	myqsort.c \
+ 	md5.cc mhash_md5.c 
+ 
+-libht_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) ${extra_ldflags}
++libht_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) -no-undefined ${extra_ldflags}
+ 
+ pkginclude_HEADERS = \
+ 	clib.h \
+--- origsrc/htdig-3.2.0b6/htnet/Makefile.am	2003-08-27 20:40:30.000000000 -0500
++++ src/htdig-3.2.0b6/htnet/Makefile.am	2009-01-08 01:15:22.485875000 -0600
+@@ -2,12 +2,12 @@
+ include $(top_srcdir)/Makefile.config
+ 
+ pkglib_LTLIBRARIES = libhtnet.la
+-
++libhtnet_la_LIBADD = $(top_builddir)/htcommon/libcommon.la $(top_builddir)/htlib/libht.la
+ libhtnet_la_SOURCES = Connection.cc Transport.cc HtHTTP.cc HtFile.cc \
+ 	HtNNTP.cc HtFTP.cc HtCookie.cc HtCookieJar.cc HtCookieMemJar.cc \
+ 	HtCookieInFileJar.cc HtHTTPBasic.cc HtHTTPSecure.cc SSLConnection.cc
+ 
+-libhtnet_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) ${extra_ldflags}
++libhtnet_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) -no-undefined ${extra_ldflags}
+ 
+ pkginclude_HEADERS = \
+ 	Connection.h \
+--- origsrc/htdig-3.2.0b6/htword/Makefile.am	2009-01-08 00:20:03.751500000 -0600
++++ src/htdig-3.2.0b6/htword/Makefile.am	2009-01-08 00:29:21.407750000 -0600
+@@ -30,7 +30,7 @@ libhtword_la_SOURCES = \
+ 	WordStat.cc \
+ 	WordType.cc
+ 
+-libhtword_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) ${extra_ldflags}
++libhtword_la_LDFLAGS = -release $(HTDIG_MAJOR_VERSION).$(HTDIG_MINOR_VERSION).$(HTDIG_MICRO_VERSION) -no-undefined ${extra_ldflags}
+ 
+ pkginclude_HEADERS = \
+ 	WordBitCompress.h \
