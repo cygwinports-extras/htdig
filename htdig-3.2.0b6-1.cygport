@@ -21,8 +21,5 @@ src_install() {
 	cd ${B}
 	cyginstall
 
-	mv ${D}/usr/lib/bin/* ${D}/usr/bin/
-	sed -e '/^dlname=/ s|\.\./bin|../../bin|' -i ${D}/usr/lib/*/*.la
-
 	dosym /var/www/cgi-bin/htsearch.exe /usr/bin/htsearch
 }
